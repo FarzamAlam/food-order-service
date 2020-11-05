@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="        http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd        http://camel.apache.org/schema/spring       https://camel.apache.org/schema/spring/camel-spring.xsd">
+    <bean class="in.co.dhdigital.services.TakeOrderProcessor" id="takeOrderProcessor"/>
+    <bean class="org.apache.activemq.camel.component.ActiveMQComponent" id="activemq">
+        <property name="brokerURL" value="tcp://localhost:61616"/>
+        <property name="username" value="adminUser"/>
+        <property name="password" value="adminPassword"/>
+    </bean>
+    <!-- define the gson data format, where we configure the data format using the properties -->
+    <bean id="gson" class="org.apache.camel.component.gson.GsonDataFormat">
+        <!-- we want to unmarshal to  pojo -->
+
+        <!-- we want to map fields to use lower case and underscores -->
+        <property name="fieldNamingPolicy" value="LOWER_CASE_WITH_UNDERSCORES"/>
+    </bean>
+    
+    <camelContext id="camel" xmlns="http://camel.apache.org/schema/spring">
+        <dataFormats>
+            <xmljson id="xmljson"/>
+        </dataFormats>
+        <restConfiguration bindingMode="json" component="jetty"
+            host="0.0.0.0" port="8080"/>
+        <rest id="rest" path="/api/v1/">
+            <post id="order-post"
+                outType="in.co.dhdigital.params.OrderResponse"
+                type="in.co.dhdigital.params.OrderRequest" uri="/order">
+                <to uri="direct:order-route"/>
+            </post>
+        </rest>
+        <route id="order-route">
+            <from id="route-from" uri="direct:order-route"/>
+            <process id="takeOrder" ref="takeOrderProcessor"/>
+            <to id="_to2" uri="direct:rest-route"/>
+            <wireTap id="_wireTap1" uri="direct:order-queue"/>
+        </route>
+        <route id="rest-route">
+            <from id="rest-route-from" uri="direct:rest-route"/>
+            <setHeader headerName="Content-Type" id="_setHeader2">
+                <constant>application/json</constant>
+            </setHeader>
+            <setBody id="_setBody2">
+                <simple>${body}</simple>
+            </setBody>
+        </route>
+        <route id="order-queue">
+            <from id="order-route-from" uri="direct:order-queue"/>
+            <delay id="_delay1">
+                <constant>5000</constant>
+            </delay>
+            <marshal><custom ref="gson"/></marshal>
+            <to id="_to1" pattern="InOnly" uri="activemq:queue:order"/>
+            <log id="_log1" message="Order is sent in order queue."/>
+        </route>
+        <route id="order-accepted-queue">
+            <from id="order-accepted-queue-from" uri="activemq:queue:order"/>
+            <delay id="_delay2">
+                <constant>5000</constant>
+            </delay>
+            <to id="_to5" pattern="InOnly" uri="activemq:queue:order-accepted"/>
+            <log id="_log2" message="Order is accepted and is being processed."/>
+        </route>
+        <route id="order-dispatched-queue">
+            <from id="order-dispatched-queue-from" uri="activemq:queue:order-accepted"/>
+            <delay id="_delay3">
+                <constant>5000</constant>
+            </delay>
+            <to id="_to6" pattern="InOnly" uri="activemq:queue:order-dispatched"/>
+            <log id="_log6" message="Order is has been dispatched."/>
+        </route>
+        <route id="order-delivered-queue">
+            <from id="order-delivered-queue-from" uri="activemq:queue:order-dispatched"/>
+            <delay id="_delay4">
+                <constant>5000</constant>
+            </delay>
+            <log id="_log7" message="Thank you. Order is has been delivered."/>
+        </route>
+    </camelContext>
+</beans>
