@@ -3,7 +3,7 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="        http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd        http://camel.apache.org/schema/spring       https://camel.apache.org/schema/spring/camel-spring.xsd">
     <bean class="in.co.dhdigital.services.TakeOrderProcessor" id="takeOrderProcessor"/>
     <bean class="org.apache.activemq.camel.component.ActiveMQComponent" id="activemq">
-        <property name="brokerURL" value="tcp://localhost:61616"/>
+        <property name="brokerURL" value="tcp://ex-aao-hdls-svc:61616"/>
         <property name="username" value="adminUser"/>
         <property name="password" value="adminPassword"/>
     </bean>
