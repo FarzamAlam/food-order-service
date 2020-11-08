@@ -3,18 +3,16 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="        http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd        http://camel.apache.org/schema/spring       https://camel.apache.org/schema/spring/camel-spring.xsd">
     <bean class="in.co.dhdigital.services.TakeOrderProcessor" id="takeOrderProcessor"/>
     <bean class="org.apache.activemq.camel.component.ActiveMQComponent" id="activemq">
-        <property name="brokerURL" value="tcp://ex-aao-hdls-svc:61616"/>
+        <property name="brokerURL" value="tcp://10.128.2.71:61616"/>
         <property name="username" value="adminUser"/>
         <property name="password" value="adminPassword"/>
     </bean>
     <!-- define the gson data format, where we configure the data format using the properties -->
-    <bean id="gson" class="org.apache.camel.component.gson.GsonDataFormat">
+    <bean class="org.apache.camel.component.gson.GsonDataFormat" id="gson">
         <!-- we want to unmarshal to  pojo -->
-
         <!-- we want to map fields to use lower case and underscores -->
         <property name="fieldNamingPolicy" value="LOWER_CASE_WITH_UNDERSCORES"/>
     </bean>
-    
     <camelContext id="camel" xmlns="http://camel.apache.org/schema/spring">
         <dataFormats>
             <xmljson id="xmljson"/>
@@ -48,7 +46,9 @@
             <delay id="_delay1">
                 <constant>5000</constant>
             </delay>
-            <marshal><custom ref="gson"/></marshal>
+            <marshal id="_marshal1">
+                <custom ref="gson"/>
+            </marshal>
             <to id="_to1" pattern="InOnly" uri="activemq:queue:order"/>
             <log id="_log1" message="Order is sent in order queue."/>
         </route>
